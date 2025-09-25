@@ -16,10 +16,16 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
   ];
 
   const recentBatches = [
-    { id: "BTH-001", herb: "Ashwagandha", status: "Testing", created: "2 hours ago" },
-    { id: "BTH-002", herb: "Turmeric", status: "Completed", created: "5 hours ago" },
-    { id: "BTH-003", herb: "Brahmi", status: "QR Generated", created: "1 day ago" },
+    { id: "BTH-001", herb: "Ashwagandha", status: "Testing", created: "2 hours ago", canEnterData: true },
+    { id: "BTH-002", herb: "Turmeric", status: "Completed", created: "5 hours ago", canEnterData: false },
+    { id: "BTH-003", herb: "Brahmi", status: "QR Generated", created: "1 day ago", canEnterData: false },
   ];
+
+  const handleBatchClick = (batch: typeof recentBatches[0]) => {
+    if (batch.canEnterData) {
+      onNavigate("research");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -73,7 +79,13 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
           <CardContent>
             <div className="space-y-4">
               {recentBatches.map((batch) => (
-                <div key={batch.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-secondary/50 transition-colors">
+                <div 
+                  key={batch.id} 
+                  className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                    batch.canEnterData ? 'hover:bg-secondary/50 cursor-pointer' : 'hover:bg-secondary/30'
+                  }`}
+                  onClick={() => handleBatchClick(batch)}
+                >
                   <div className="flex items-center space-x-4">
                     <div className="bg-gradient-primary p-2 rounded-lg">
                       <FlaskConical className="h-4 w-4 text-primary-foreground" />
@@ -87,11 +99,15 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
                     <Badge variant={
                       batch.status === 'Completed' ? 'default' :
                       batch.status === 'Testing' ? 'secondary' :
-                      'outline'
+                      batch.status === 'QR Generated' ? 'outline' :
+                      'secondary'
                     }>
                       {batch.status}
                     </Badge>
                     <div className="text-xs text-muted-foreground">{batch.created}</div>
+                    {batch.canEnterData && (
+                      <div className="text-xs text-primary">Click to enter data</div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, QrCode, Download, Share } from "lucide-react";
+import { ArrowLeft, QrCode, Download, Share, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface BatchCreationProps {
@@ -14,21 +14,20 @@ interface BatchCreationProps {
 
 export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
   const [batchId, setBatchId] = useState("");
-  const [qrGenerated, setQrGenerated] = useState(false);
-
   const generateBatchId = () => {
     const id = `BTH-${Date.now().toString().slice(-6)}`;
     setBatchId(id);
   };
 
-  const handleGenerateQR = (e: React.FormEvent) => {
+  const handleCreateBatch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!batchId) generateBatchId();
-    setQrGenerated(true);
     toast({
-      title: "QR Code Generated",
-      description: `Batch ${batchId || "BTH-" + Date.now().toString().slice(-6)} QR code created successfully.`
+      title: "Batch Created",
+      description: `Batch ${batchId || "BTH-" + Date.now().toString().slice(-6)} created successfully. Status: Testing`
     });
+    // Navigate back to dashboard to show the new batch
+    setTimeout(() => onNavigate("dashboard"), 1500);
   };
 
   return (
@@ -44,7 +43,7 @@ export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
           Back to Dashboard
         </Button>
         <h1 className="text-3xl font-bold text-foreground">Create New Batch</h1>
-        <p className="text-muted-foreground mt-1">Generate a new testing batch with QR code</p>
+        <p className="text-muted-foreground mt-1">Create a new herb testing batch (QR code generated after blockchain validation)</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -55,7 +54,7 @@ export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
             <CardDescription>Enter details for the new herb testing batch</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleGenerateQR} className="space-y-6">
+            <form onSubmit={handleCreateBatch} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="batchId">Batch ID</Label>
@@ -124,69 +123,65 @@ export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
                 type="submit" 
                 className="w-full bg-gradient-primary hover:bg-primary-hover"
               >
-                <QrCode className="mr-2 h-4 w-4" />
-                Generate Batch & QR Code
+                <Plus className="mr-2 h-4 w-4" />
+                Create Batch
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* QR Code Display */}
+        {/* Batch Status Info */}
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle>QR Code</CardTitle>
+            <CardTitle>Batch Workflow</CardTitle>
             <CardDescription>
-              {qrGenerated ? "Batch QR code generated successfully" : "QR code will appear after batch creation"}
+              Batch lifecycle phases in Sattva Chain
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
-            {qrGenerated ? (
-              <div className="space-y-6">
-                {/* QR Code Placeholder */}
-                <div className="mx-auto w-48 h-48 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-dashed border-primary/30 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <QrCode className="h-16 w-16 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">QR Code</p>
-                    <p className="text-xs font-mono">{batchId}</p>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Workflow Steps */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">1</div>
+                  <div>
+                    <p className="font-medium">Testing Phase</p>
+                    <p className="text-sm text-muted-foreground">Batch created, ready for laboratory testing</p>
                   </div>
                 </div>
-
-                {/* Actions */}
-                <div className="flex space-x-2">
-                  <Button variant="outline" className="flex-1">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Share className="mr-2 h-4 w-4" />
-                    Share
-                  </Button>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-sm font-medium">2</div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Completed Phase</p>
+                    <p className="text-sm text-muted-foreground">All laboratory data entered and validated</p>
+                  </div>
                 </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-sm font-medium">3</div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">QR Generated Phase</p>
+                    <p className="text-sm text-muted-foreground">Blockchain validation complete, consumer QR ready</p>
+                  </div>
+                </div>
+              </div>
 
-                {/* Batch Info */}
-                <div className="bg-secondary/50 p-4 rounded-lg text-left">
-                  <h4 className="font-medium mb-2">Batch Details</h4>
+              {batchId && (
+                <div className="bg-secondary/50 p-4 rounded-lg mt-6">
+                  <h4 className="font-medium mb-2">Current Batch</h4>
                   <div className="text-sm space-y-1 text-muted-foreground">
                     <p>ID: {batchId}</p>
-                    <p>Created: {new Date().toLocaleDateString()}</p>
-                    <p>Status: Ready for Testing</p>
+                    <p>Status: Testing Phase</p>
+                    <p>Next Step: Enter laboratory research data</p>
                   </div>
+                  <Button 
+                    onClick={() => onNavigate("research")}
+                    className="w-full mt-3 bg-gradient-primary hover:bg-primary-hover"
+                  >
+                    Enter Research Data
+                  </Button>
                 </div>
-
-                {/* Next Steps */}
-                <Button 
-                  onClick={() => onNavigate("research")}
-                  className="w-full bg-gradient-primary hover:bg-primary-hover"
-                >
-                  Proceed to Research Data Entry
-                </Button>
-              </div>
-            ) : (
-              <div className="py-16">
-                <QrCode className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">Create a batch to generate QR code</p>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

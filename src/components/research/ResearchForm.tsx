@@ -32,8 +32,10 @@ export const ResearchForm = ({ onNavigate }: ResearchFormProps) => {
     e.preventDefault();
     toast({
       title: "Research Data Submitted",
-      description: "Laboratory results have been recorded and linked to batch QR code."
+      description: "Laboratory results recorded. Batch status updated to 'Completed'."
     });
+    // Navigate back to dashboard after submission
+    setTimeout(() => onNavigate("dashboard"), 1500);
   };
 
   const handleSaveDraft = () => {
