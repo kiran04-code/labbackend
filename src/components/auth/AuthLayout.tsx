@@ -36,15 +36,15 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
 
     try {
       const response = await axios.post(
-        "http://localhost:3005/register",
+        "https://bkdoflab.onrender.com/register",
         { ...formData },
         { withCredentials: true }
       );
-
-      
-      onAuthenticated();
       if (response.data.success) {
+        onAuthenticated();
         navigate("/dashboard");
+      }else{
+        alert(`${response.data.message}`)
       }
     } catch (error: any) {
       console.error("Register Error:", error.response?.data || error.message);
@@ -61,7 +61,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/loginlab",
+        "https://bkdoflab.onrender.com/loginlab",
         { email: formData.email, password: formData.password },
         { withCredentials: true }
       );
