@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   // Fetch user data from backend
   const fetchUser = async () => {
     try {
-      const res = await axios.get("http://localhost:3005/Auth", { withCredentials: true });
+      const res = await axios.get("https://bkdoflab.onrender.com/Auth", { withCredentials: true });
       if (res.data.success) {
         setUser(res.data?.userData);
         setSuccess(true);
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setSuccess(false);
     // Optionally, make a logout request to backend to clear cookie
-    axios.post("http://localhost:3005/logout", {}, { withCredentials: true });
+    axios.post("https://bkdoflab.onrender.com/logout", {}, { withCredentials: true });
   };
 
   return (
