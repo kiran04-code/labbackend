@@ -7,12 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, QrCode, Download, Share, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface BatchCreationProps {
   onNavigate: (view: string) => void;
 }
 
 export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
+  const navgiet = useNavigate()
   const [batchId, setBatchId] = useState("");
   const generateBatchId = () => {
     const id = `BTH-${Date.now().toString().slice(-6)}`;
@@ -27,7 +29,7 @@ export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
       description: `Batch ${batchId || "BTH-" + Date.now().toString().slice(-6)} created successfully. Status: Testing`
     });
     // Navigate back to dashboard to show the new batch
-    setTimeout(() => onNavigate("dashboard"), 1500);
+    setTimeout(() => navgiet("dashboard"), 1500);
   };
 
   return (
@@ -36,7 +38,7 @@ export const BatchCreation = ({ onNavigate }: BatchCreationProps) => {
       <div className="mb-8">
         <Button 
           variant="ghost" 
-          onClick={() => onNavigate("dashboard")}
+          onClick={() => navgiet("dashboard")}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

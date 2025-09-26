@@ -5,23 +5,76 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Microscope, Leaf, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 interface AuthLayoutProps {
   onAuthenticated: () => void;
 }
 
 export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const [formData, setFormData] = useState({
+    laboratoryName: "",
+    licenseId: "",
+    email: "",
+    password: "",
+    location: ""
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  // ---------------- REGISTER ----------------
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate authentication
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3005/register",
+        { ...formData },
+        { withCredentials: true }
+      );
+
+      
       onAuthenticated();
-    }, 1000);
+      if (response.data.success) {
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      console.error("Register Error:", error.response?.data || error.message);
+   
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ---------------- LOGIN ----------------
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/loginlab",
+        { email: formData.email, password: formData.password },
+        { withCredentials: true }
+      );
+
+      console.log("Login Success:", response.data);
+      onAuthenticated();
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Login Error:", error.response?.data || error.message);
+      alert(error.response?.data?.error || "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -55,59 +108,97 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "login" | "register")} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
                 <TabsTrigger value="register">Register Lab</TabsTrigger>
               </TabsList>
-              
+
+              {/* ---------------- LOGIN FORM ---------------- */}
               <TabsContent value="login">
-                <form onSubmit={handleAuth} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="lab@example.com" required />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="admin@lab.com"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" required />
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                    />
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-primary hover:bg-primary-hover"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing In..." : "Sign In"}
+                  <Button type="submit" className="w-full bg-gradient-primary hover:bg-primary-hover" disabled={isLoading}>
+                    {isLoading ? "Logging in..." : "Sign In"}
                   </Button>
                 </form>
               </TabsContent>
-              
+
+              {/* ---------------- REGISTER FORM ---------------- */}
               <TabsContent value="register">
-                <form onSubmit={handleAuth} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="labName">Laboratory Name</Label>
-                    <Input id="labName" placeholder="Herbal Research Lab" required />
+                    <Label htmlFor="laboratoryName">Laboratory Name</Label>
+                    <Input
+                      id="laboratoryName"
+                      placeholder="Herbal Research Lab"
+                      required
+                      value={formData.laboratoryName}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="licenseId">License ID</Label>
-                    <Input id="licenseId" placeholder="LAB-2024-001" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="admin@lab.com" required />
+                    <Input
+                      id="licenseId"
+                      placeholder="LAB-2024-001"
+                      required
+                      value={formData.licenseId}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
-                    <Input id="location" placeholder="City, State" required />
+                    <Input
+                      id="location"
+                      placeholder="City, State"
+                      required
+                      value={formData.location}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="admin@lab.com"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" required />
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                    />
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-primary hover:bg-primary-hover"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full bg-gradient-primary hover:bg-primary-hover" disabled={isLoading}>
                     {isLoading ? "Registering..." : "Register Laboratory"}
                   </Button>
                 </form>
