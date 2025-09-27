@@ -89,8 +89,8 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                         batchId: prod.productId,
                         testDate: new Date().toISOString().split("T")[0],
                         temperature: parseFloat(prod.temperature),
-                        humidity: 75,
-                        storageTime: 170,
+                        humidity: 65,
+                        storageTime: 100,
                         lightExposure: 6,
                         soilPh: 6.5,
                         soilMoisture: 20,
@@ -105,7 +105,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                         aflatoxinTotal: 5,
                         pesticideResidue: 0.1,
                         moistureContent: 10,
-                        essentialOil: 5,
+                        essentialOil: 0.8,
                         chlorophyllIndex: 30,
                         leafSpots: 2,
                         discoloration: 1,
@@ -305,6 +305,6 @@ const SelectSection = ({ id, label, value, onChange }: { id: string; label: stri
     <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={(val) => onChange(id as keyof ProductData, val)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="100%">100%</SelectItem><SelectItem value="no">No</SelectItem><SelectItem value="inconclusive">Inconclusive</SelectItem></SelectContent></Select></div>
 );
 
-const CollapsibleCard = ({ title, description, open, toggle, inputs, children, onInputChange }: any) => (
+const CollapsibleCard = ({ title, description, open, tggle, inputs, children, onInputChange }: any) => (
     <Card><Collapsible open={open} onOpenChange={toggle}><CollapsibleTrigger asChild><CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors"><div className="flex items-center justify-between"><div><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></div><ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} /></div></CardHeader></CollapsibleTrigger><CollapsibleContent><CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-4">{inputs?.map((inp: any) => <InputSection key={inp.id} id={inp.id} label={inp.label} value={inp.value} onChange={onInputChange} />)}{children}</CardContent></CollapsibleContent></Collapsible></Card>
 );
