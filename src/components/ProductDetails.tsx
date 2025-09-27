@@ -90,7 +90,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                         testDate: new Date().toISOString().split("T")[0],
                         temperature: parseFloat(prod.temperature),
                         humidity: 65,
-                        storageTime: 40,
+                        storageTime: 100,
                         lightExposure: 6,
                         soilPh: 6.5,
                         soilMoisture: 20,
