@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const axioseInstance = axios.create({
-    baseURL:"http://localhost:3005"
+    baseURL:"https://bkdoflab.onrender.com"
   })
   // Fetch user data from backend
   const fetchUser = async () => {
