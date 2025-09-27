@@ -305,6 +305,6 @@ const SelectSection = ({ id, label, value, onChange }: { id: string; label: stri
     <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={(val) => onChange(id as keyof ProductData, val)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="100%">100%</SelectItem><SelectItem value="no">No</SelectItem><SelectItem value="inconclusive">Inconclusive</SelectItem></SelectContent></Select></div>
 );
 
-const CollapsibleCard = ({ title, description, open, tggle, inputs, children, onInputChange }: any) => (
+const CollapsibleCard = ({ title, description, open, toggle, inputs, children, onInputChange }: any) => (
     <Card><Collapsible open={open} onOpenChange={toggle}><CollapsibleTrigger asChild><CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors"><div className="flex items-center justify-between"><div><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></div><ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} /></div></CardHeader></CollapsibleTrigger><CollapsibleContent><CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-4">{inputs?.map((inp: any) => <InputSection key={inp.id} id={inp.id} label={inp.label} value={inp.value} onChange={onInputChange} />)}{children}</CardContent></CollapsibleContent></Collapsible></Card>
 );
