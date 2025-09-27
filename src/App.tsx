@@ -16,7 +16,7 @@ import { ProductDetails } from "./components/ProductDetails";
 const queryClient = new QueryClient();
 
 const App = () => (
- <AuthProvider>
+  <AuthProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -30,9 +30,8 @@ const App = () => (
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute>
-                  <LabDashboard />
-                </PrivateRoute>
+                <LabDashboard />
+
               }
             />
             <Route
@@ -43,7 +42,7 @@ const App = () => (
                 </PrivateRoute>
               }
             />
-          
+
             <Route
               path="/dashboard/analytics"
               element={
@@ -52,8 +51,8 @@ const App = () => (
                 </PrivateRoute>
               }
             />
-          <Route path="/product/:id" element={<ProductDetails/>} />
- 
+            <Route path="/product/:id" element={<ProductDetails />} />
+
             {/* 404 page */}
             <Route path="*" element={<NotFound />} />
           </Routes>
