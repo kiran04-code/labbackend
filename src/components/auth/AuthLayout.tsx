@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Microscope, Leaf, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "@/context/auth";
 
 interface AuthLayoutProps {
   onAuthenticated: () => void;
@@ -14,6 +15,7 @@ interface AuthLayoutProps {
 
 export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
   const navigate = useNavigate();
+  const {axioseInstance} = useAuth()
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
@@ -35,13 +37,12 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        "https://bkdoflab.onrender.com/register",
+      const response = await axioseInstance.post(
+        "/register",
         { ...formData },
         { withCredentials: true }
       );
       if (response.data.success) {
-        onAuthenticated();
         navigate("/dashboard");
       }else{
         alert(`${response.data.message}`)
@@ -60,8 +61,8 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        "https://bkdoflab.onrender.com/loginlab",
+      const response = await axioseInstance.post(
+        "/loginlab",
         { email: formData.email, password: formData.password },
         { withCredentials: true }
       );

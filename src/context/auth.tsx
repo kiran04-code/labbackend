@@ -10,11 +10,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
-
+  const axioseInstance = axios.create({
+    baseURL:"http://localhost:3005"
+  })
   // Fetch user data from backend
   const fetchUser = async () => {
     try {
-      const res = await axios.get("https://bkdoflab.onrender.com/Auth", { withCredentials: true });
+      const res = await axioseInstance.get("/Auth", { withCredentials: true });
       if (res.data.success) {
         setUser(res.data?.userData);
         setSuccess(true);
@@ -67,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, success, loading, fetchUser, logout ,contract,account,conntecte}}>
+    <AuthContext.Provider value={{ user, success, loading, fetchUser,axioseInstance, logout ,contract,account,conntecte}}>
       {children}
     </AuthContext.Provider>
   );
