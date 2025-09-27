@@ -161,7 +161,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
 
         try {
             setloder(true);
-            const { data }= await axios.post(
+            const { data } = await axios.post(
                 "https://sattva-chain-processor.onrender.com/agent/analyze-herb-quality-rag",
                 submissionData, { headers: { 'Content-Type': 'application/json' } }
             );
@@ -171,33 +171,46 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                 try {
                     await contract.setHerbName(product.batchId);
                     await contract.setFarmerId("hbolujui");
-                    await contract.setTemperature(test_results.Temperature_C);
-                    await contract.setHumidity(test_results.Humidity_Pct);
+
+                    // Environment
+                    await contract.setTemperature(Math.round(test_results.Temperature_C * 100)); // 25.5 → 2550
+                    await contract.setHumidity(Math.round(test_results.Humidity_Pct * 100));
                     await contract.setStorageDays(test_results.Storage_Time_Days);
-                    await contract.setLightExposure(test_results.Light_Exposure_hours_per_day);
-                    await contract.setSoilPH(test_results.Soil_pH);
-                    await contract.setSoilMoisture(test_results.Soil_Moisture_Pct);
-                    await contract.setSoilNitrogen(test_results.Soil_Nitrogen_mgkg);
-                    await contract.setSoilPhosphorus(test_results.Soil_Phosphorus_mgkg);
-                    await contract.setSoilPotassium(test_results.Soil_Potassium_mgkg);
-                    await contract.setSoilOrganicCarbon(test_results.Soil_Organic_Carbon_Pct);
-                    await contract.setPb(test_results.Heavy_Metal_Pb_ppm);
-                    await contract.setAs(test_results.Heavy_Metal_As_ppm);
-                    await contract.setHg(test_results.Heavy_Metal_Hg_ppm);
-                    await contract.setCd(test_results.Heavy_Metal_Cd_ppm);
-                    await contract.setAflatoxin(test_results.Aflatoxin_Total_ppb);
-                    await contract.setPesticideResidue(test_results.Pesticide_Residue_Total_ppm);
-                    await contract.setMoistureContent(test_results.Moisture_Content_Pct);
-                    await contract.setEssentialOil(test_results.Essential_Oil_Pct);
-                    await contract.setChlorophyll(test_results.Chlorophyll_Index);
+                    await contract.setLightExposure(Math.round(test_results.Light_Exposure_hours_per_day * 100));
+
+                    // Soil
+                    await contract.setSoilPH(Math.round(test_results.Soil_pH * 100));
+                    await contract.setSoilMoisture(Math.round(test_results.Soil_Moisture_Pct * 100));
+                    await contract.setSoilNitrogen(Math.round(test_results.Soil_Nitrogen_mgkg));
+                    await contract.setSoilPhosphorus(Math.round(test_results.Soil_Phosphorus_mgkg));
+                    await contract.setSoilPotassium(Math.round(test_results.Soil_Potassium_mgkg));
+                    await contract.setSoilOrganicCarbon(Math.round(test_results.Soil_Organic_Carbon_Pct * 100));
+
+                    // Contaminants
+                    await contract.setPb(Math.round(test_results.Heavy_Metal_Pb_ppm * 100));
+                    await contract.setAs(Math.round(test_results.Heavy_Metal_As_ppm * 100));
+                    await contract.setHg(Math.round(test_results.Heavy_Metal_Hg_ppm * 100));
+                    await contract.setCd(Math.round(test_results.Heavy_Metal_Cd_ppm * 100));
+                    await contract.setAflatoxin(Math.round(test_results.Aflatoxin_Total_ppb));
+                    await contract.setPesticideResidue(Math.round(test_results.Pesticide_Residue_Total_ppm * 100));
+
+                    // Quality Metrics
+                    await contract.setMoistureContent(Math.round(test_results.Moisture_Content_Pct * 100));
+                    await contract.setEssentialOil(Math.round(test_results.Essential_Oil_Pct * 100));
+                    await contract.setChlorophyll(Math.round(test_results.Chlorophyll_Index * 100));
                     await contract.setLeafSpots(test_results.Leaf_Spots_Count);
-                    await contract.setDiscoloration(test_results.Discoloration_Index);
-                    await contract.setBacteria(test_results.Total_Bacterial_Count_CFU_g);
-                    await contract.setFungi(test_results.Total_Fungal_Count_CFU_g);
-                    await contract.setEcoli(test_results.E_coli_Present);
-                    await contract.setSalmonella(test_results.Salmonella_Present);
-                    await contract.setDNAAuth(test_results.DNA_Marker_Authenticity);
-                    
+                    await contract.setDiscoloration(Math.round(test_results.Discoloration_Index * 100));
+
+                    // Microbial
+                    await contract.setBacteria(Math.round(test_results.Total_Bacterial_Count_CFU_g));
+                    await contract.setFungi(Math.round(test_results.Total_Fungal_Count_CFU_g));
+                    await contract.setEcoli(test_results.E_coli_Present ? 1 : 0);
+                    await contract.setSalmonella(test_results.Salmonella_Present ? 1 : 0);
+
+                    // DNA Authentication
+                    await contract.setDNAAuth(test_results.DNA_Marker_Authenticity ? 1 : 0);
+
+
                     setModalContent(data);
                 } catch (err) {
                     console.error("Blockchain error:", err);
@@ -223,13 +236,13 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
     return (
         <div className="min-h-screen bg-background p-6">
             {modalContent && (
-                <StatusModal 
-                    response={modalContent} 
+                <StatusModal
+                    response={modalContent}
                     onClose={() => setModalContent(null)}
                     onNavigate={onNavigate}
                 />
             )}
-            
+
             <div className="mb-8 max-w-4xl mx-auto">
                 <Button variant="ghost" onClick={() => onNavigate("dashboard")} className="mb-4 flex items-center gap-2 text-gray-700 hover:text-gray-900">
                     <ArrowLeft className="h-4 w-4" /> Back to Dashboard
@@ -247,7 +260,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                     )}
                 </div>
             </div>
-            
+
             <div className="max-w-4xl mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <Card><CardHeader><CardTitle>Batch Information</CardTitle></CardHeader>
@@ -262,17 +275,17 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                         { id: "soilPh", label: "Soil pH", value: product.soilPh }, { id: "soilMoisture", label: "Soil Moisture (%)", value: product.soilMoisture },
                         { id: "soilNitrogen", label: "Soil Nitrogen (mg/kg)", value: product.soilNitrogen }, { id: "soilPhosphorus", label: "Soil Phosphorus (mg/kg)", value: product.soilPhosphorus },
                         { id: "soilPotassium", label: "Soil Potassium (mg/kg)", value: product.soilPotassium }, { id: "soilCarbon", label: "Soil Organic Carbon (%)", value: product.soilCarbon }
-                    ]}/>
+                    ]} />
                     <CollapsibleCard title="Contaminants & Safety Parameters" description="Heavy metals, aflatoxins, pesticide residues" open={openSections.contaminants} toggle={() => toggleSection("contaminants")} onInputChange={handleInputChange} inputs={[
                         { id: "heavyMetalPb", label: "Heavy Metal Pb (ppm)", value: product.heavyMetalPb }, { id: "heavyMetalAs", label: "Heavy Metal As (ppm)", value: product.heavyMetalAs },
                         { id: "heavyMetalHg", label: "Heavy Metal Hg (ppm)", value: product.heavyMetalHg }, { id: "heavyMetalCd", label: "Heavy Metal Cd (ppm)", value: product.heavyMetalCd },
                         { id: "aflatoxinTotal", label: "Aflatoxin Total (ppb)", value: product.aflatoxinTotal }, { id: "pesticideResidue", label: "Pesticide Residue Total (ppm)", value: product.pesticideResidue }
-                    ]}/>
+                    ]} />
                     <CollapsibleCard title="Biochemical Properties" description="Moisture, essential oils, chlorophyll analysis" open={openSections.biochemical} toggle={() => toggleSection("biochemical")} onInputChange={handleInputChange} inputs={[
                         { id: "moistureContent", label: "Moisture Content (%)", value: product.moistureContent }, { id: "essentialOil", label: "Essential Oil (%)", value: product.essentialOil },
                         { id: "chlorophyllIndex", label: "Chlorophyll Index", value: product.chlorophyllIndex }, { id: "leafSpots", label: "Leaf Spots Count", value: product.leafSpots },
                         { id: "discoloration", label: "Discoloration Index", value: product.discoloration }
-                    ]}/>
+                    ]} />
                     <CollapsibleCard title="Microbial Testing" description="Bacterial and fungal analysis" open={openSections.microbial} toggle={() => toggleSection("microbial")} onInputChange={handleInputChange} inputs={[
                         { id: "bacterialCount", label: "Total Bacterial Count (CFU/g)", value: product.bacterialCount }, { id: "fungalCount", label: "Total Fungal Count (CFU/g)", value: product.fungalCount },
                     ]}>
@@ -298,7 +311,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
 
 // --- HELPER COMPONENTS (Unchanged) ---
 const InputSection = ({ id, label, value, onChange, readOnly = false }: { id: string; label: string; value: number | string; onChange?: (id: keyof ProductData, value: string) => void; readOnly?: boolean; }) => (
-    <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Input id={id} type="text" value={value} onChange={onChange ? (e) => onChange(id as keyof ProductData, e.target.value) : undefined} readOnly={readOnly}/></div>
+    <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Input id={id} type="text" value={value} onChange={onChange ? (e) => onChange(id as keyof ProductData, e.target.value) : undefined} readOnly={readOnly} /></div>
 );
 
 const SelectSection = ({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (id: keyof ProductData, value: string) => void; }) => (
