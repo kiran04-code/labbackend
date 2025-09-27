@@ -212,9 +212,10 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
 
 
                     setModalContent(data);
-                    setloder(true)
+                    setloder(false)
                     toast({ title: " Store on is Blockchain  Complete  ", description: "Your Produst is store on blockchain is Successfull", });
                 } catch (err) {
+                     setloder(false)
                     console.error("Blockchain error:", err);
                     toast({ title: "Blockchain Error", description: "Could not write to the smart contract.", variant: "destructive" });
                 }
