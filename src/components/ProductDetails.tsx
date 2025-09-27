@@ -157,7 +157,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
             return acc;
         }, {} as Record<string, any>);
 
-        const submissionData = { herb_name: product.batchId, Famer_Id: user._id, test_results };
+        const submissionData = { herb_name: product.batchId, Famer_Id: "dsgedg57", test_results };
 
         try {
             setloder(true);
@@ -170,7 +170,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                 toast({ title: "Analysis Complete", description: "Submitting to blockchain..." });
                 try {
                     await contract.setHerbName(product.batchId);
-                    await contract.setFarmerId(user._id);
+                    await contract.setFarmerId("hbolujui");
                     await contract.setTemperature(test_results.Temperature_C);
                     await contract.setHumidity(test_results.Humidity_Pct);
                     await contract.setStorageDays(test_results.Storage_Time_Days);
