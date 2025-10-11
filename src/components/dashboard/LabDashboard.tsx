@@ -37,9 +37,9 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
     }
   };
 
-  // useEffect(() => {
-  //   fetchIPFSData();
-  // }, []);
+  useEffect(() => {
+    fetchIPFSData();
+  }, []);
 
   // Example static stats
   const stats = [
