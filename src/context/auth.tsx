@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const contractAddres = "0xCA984F9a6d67A13DFEb9a0C54629D3Dc44f6B0E1"
+  const contractAddres = "0xcb668058cc5435106816C4F81f8e0D7e24281EDC"
   useEffect(() => {
     const EtherConnecte = async () => {
       const provider = new ethers.BrowserProvider(window.ethereum)

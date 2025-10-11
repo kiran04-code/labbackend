@@ -16,7 +16,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ArrowLeft, ChevronDown, Save } from "lucide-react";
+import { ArrowLeft, ChevronDown, Save, CheckCircle, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
 import { useAuth } from "@/context/auth";
@@ -81,7 +81,7 @@ export const ProductDetails = ({
   const [loaderText, setLoaderText] = useState("Processing...");
   const [modalContent, setModalContent] = useState<ApiResponse | null>(null);
   const [step, setStep] = useState<
-    "form" | "ai-running" | "preview" | "blockchain" | "anomaly"
+    "form" | "ai-running" | "ai-result" | "preview" | "blockchain" | "anomaly"
   >("form");
   const [openSections, setOpenSections] = useState({
     environmental: true,
@@ -173,7 +173,7 @@ export const ProductDetails = ({
       );
       setModalContent(data);
       if (data.status === "Normal") {
-        setStep("preview");
+        setStep("ai-result");
       } else {
         setStep("anomaly");
       }
@@ -239,7 +239,6 @@ export const ProductDetails = ({
       const formData = new FormData();
       formData.append("file", file);
 
-      // ✅ MODIFICATION: Added batchId to metadata for better querying
       const metadata = JSON.stringify({
         name: `Certificate-${product.batchId}`,
         keyvalues: {
@@ -264,21 +263,73 @@ export const ProductDetails = ({
       const certificateIpfsHash = pinataResponse.data.IpfsHash;
       toast({ title: "Upload Success", description: "Certificate stored on IPFS." });
       
-      // Step 2: Store Data and IPFS Hash on the Blockchain
-      setLoaderText("Storing data on blockchain...");
-      await contract.setHerbName(product.batchId);
-      // await contract.setFarmerId(user?.licenseId || "F123");
-      // await contract.setTemperature(Math.round(product.temperature * 100));
-      // await contract.setHumidity(Math.round(product.humidity * 100));
-      // await contract.setSoilPh(Math.round(product.soilPh * 100));
-      // await contract.setMoisture(Math.round(product.soilMoisture * 100));
-      // await contract.setOil(Math.round(product.essentialOil * 100));
-      
-      if (contract.setCertificateHash) {
-          await contract.setCertificateHash(user?.licenseId || "N/A", certificateIpfsHash);
-      }
-      
-      toast({ title: "Blockchain Success", description: "Data and certificate hash stored on blockchain." });
+      // Step 2: Prepare structs and store all data in a SINGLE transaction
+      setLoaderText("Preparing data for blockchain...");
+
+      const basicData = {
+          herb_name: product.batchId,
+          Farmer_Id: user?.licenseId || "F123",
+      };
+
+      const environmentData = {
+          Temperature_C: Math.round(product.temperature * 100),
+          Humidity_Pct: Math.round(product.humidity * 100),
+          Storage_Time_Days: product.storageTime,
+          Light_Exposure_hours_per_day: Math.round(product.lightExposure * 100),
+      };
+
+      const soilData = {
+          Soil_pH: Math.round(product.soilPh * 100),
+          Soil_Moisture_Pct: Math.round(product.soilMoisture * 100),
+          Soil_Nitrogen_mgkg: product.soilNitrogen,
+          Soil_Phosphorus_mgkg: product.soilPhosphorus,
+          Soil_Potassium_mgkg: product.soilPotassium,
+          Soil_Organic_Carbon_Pct: Math.round(product.soilCarbon * 100),
+      };
+
+      const contaminantsData = {
+          Heavy_Metal_Pb_ppm: Math.round(product.heavyMetalPb * 100),
+          Heavy_Metal_As_ppm: Math.round(product.heavyMetalAs * 100),
+          Heavy_Metal_Hg_ppm: Math.round(product.heavyMetalHg * 100),
+          Heavy_Metal_Cd_ppm: Math.round(product.heavyMetalCd * 100),
+          Aflatoxin_Total_ppb: product.aflatoxinTotal,
+          Pesticide_Residue_Total_ppm: Math.round(product.pesticideResidue * 100),
+      };
+
+      const qualityData = {
+          Moisture_Content_Pct: Math.round(product.moistureContent * 100),
+          Essential_Oil_Pct: Math.round(product.essentialOil * 100),
+          Chlorophyll_Index: product.chlorophyllIndex,
+          Leaf_Spots_Count: product.leafSpots,
+          Discoloration_Index: product.discoloration,
+          Total_Bacterial_Count_CFU_g: product.bacterialCount,
+          Total_Fungal_Count_CFU_g: product.fungalCount,
+          E_coli_Present: product.ecoliPresent,
+          Salmonella_Present: product.salmonellaPresent,
+          DNA_Marker_Authenticity: product.dnaAuthenticity,
+      };
+
+      const tx = await contract.recordAllData(
+          basicData,
+          environmentData,
+          soilData,
+          contaminantsData,
+          qualityData
+      );
+
+      setLoaderText("Storing data on blockchain... Please confirm in your wallet.");
+      await tx.wait(); // Wait for the single transaction to be mined
+
+      toast({ title: "Blockchain Success", description: "All data stored in one transaction." });
+
+      // Step 3: Store data in the off-chain database
+      setLoaderText("Syncing with database...");
+      await axios.post("http://localhost:3005/StoreInDB", {
+          ...product,
+          certificateIpfsHash,
+          licenseId: user?.licenseId || "N/A",
+      });
+      toast({ title: "Database Sync Success", description: "Data stored in the database." });
 
       onNavigate("dashboard");
 
@@ -290,7 +341,7 @@ export const ProductDetails = ({
         description: `Could not complete the process. Error: ${errorMessage}`,
         variant: "destructive",
       });
-      setStep("preview"); // Go back to preview to allow retry
+      setStep("preview");
     } finally {
       setLoading(false);
       setLoaderText("Processing...");
@@ -308,24 +359,33 @@ export const ProductDetails = ({
 
   // ------------------ Top Flow Bar ------------------
   const FlowBar = ({ currentStep }: { currentStep: string }) => {
-    const flowSteps = ["form", "ai-running", "preview", "blockchain"];
-    const stepLabels: { [key: string]: string } = {
+    const flowStages = ["form", "analysis", "preview", "blockchain"];
+    const stageLabels: { [key: string]: string } = {
         form: "Data Entry",
-        "ai-running": "AI Analysis",
+        analysis: "AI Analysis",
         preview: "Certificate",
         blockchain: "Blockchain",
     };
+
+    const getCurrentStage = (step: string) => {
+        if (step === 'form') return 'form';
+        if (step === 'ai-running' || step === 'ai-result' || step === 'anomaly') return 'analysis';
+        if (step === 'preview') return 'preview';
+        if (step === 'blockchain') return 'blockchain';
+        return 'form';
+    };
     
-    const currentStepIndex = flowSteps.indexOf(currentStep);
+    const currentStage = getCurrentStage(currentStep);
+    const currentStageIndex = flowStages.indexOf(currentStage);
 
     return (
       <div className="flex items-center justify-center gap-4 mb-6">
-        {flowSteps.map((stepKey, idx) => {
-          const isActive = idx === currentStepIndex;
-          const isDone = idx < currentStepIndex;
+        {flowStages.map((stageKey, idx) => {
+          const isActive = idx === currentStageIndex;
+          const isDone = idx < currentStageIndex;
           
           return (
-            <div key={stepKey} className="flex items-center gap-3">
+            <div key={stageKey} className="flex items-center gap-3">
               <div
                 className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-semibold transition-all
                   ${isActive ? "bg-blue-600 text-white scale-110" : isDone ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
@@ -333,9 +393,9 @@ export const ProductDetails = ({
                 {idx + 1}
               </div>
               <div className={`text-xs font-medium ${isActive ? "text-blue-700" : isDone ? "text-green-700" : "text-gray-500"}`}>
-                {stepLabels[stepKey]}
+                {stageLabels[stageKey]}
               </div>
-              {idx < flowSteps.length - 1 && <div className="w-8 h-0.5 bg-gray-300 mx-2" />}
+              {idx < flowStages.length - 1 && <div className="w-8 h-0.5 bg-gray-300 mx-2" />}
             </div>
           );
         })}
@@ -343,7 +403,6 @@ export const ProductDetails = ({
     );
   };
   
-  // ✅ MODIFICATION: Helper array for dynamically creating the results table
   const resultEntries = [
     { key: 'temperature', label: 'Temperature', unit: '°C' },
     { key: 'humidity', label: 'Humidity', unit: '%' },
@@ -377,7 +436,6 @@ export const ProductDetails = ({
           <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-2xl shadow-md">
             <h1 className="text-2xl font-bold text-gray-800">Research Data Entry: {product.batchId}</h1>
             <p className="text-sm text-gray-500">Fill or verify test parameters, then click Analyze.</p>
-
             <CollapsibleCard
                 title="Environmental & Soil Conditions"
                 description="Temperature, humidity, soil parameters"
@@ -455,13 +513,40 @@ export const ProductDetails = ({
           </form>
         )}
 
+        {step === "ai-result" && modalContent && (
+            <div className="flex flex-col items-center text-center space-y-6 bg-white p-8 rounded-2xl shadow-md">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <h2 className="text-3xl font-bold text-gray-800">AI Analysis Complete</h2>
+                <p className="text-green-600 font-semibold text-lg">No Anomalies Detected</p>
+                
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-left w-full max-w-2xl">
+                    <h3 className="text-lg font-semibold mb-2 text-gray-700">AI Summary:</h3>
+                    <p className="text-sm text-gray-600 italic">"{modalContent.summary}"</p>
+                    {modalContent.quality_rating && (
+                        <div className="mt-4">
+                            <p className="text-sm font-semibold text-gray-700">
+                                Estimated Quality Rating: 
+                                <span className="ml-2 font-bold text-blue-600">{modalContent.quality_rating} / 10</span>
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                    <Button onClick={() => setStep("form")} variant="outline">Back to Form</Button>
+                    <Button onClick={() => setStep("preview")} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        Proceed to Certificate <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        )}
+
         {step === "preview" && product && (
           <div className="flex flex-col items-center space-y-6">
             <h2 className="text-3xl font-bold text-blue-700">Certificate Preview</h2>
             <p className="text-gray-600 max-w-xl text-center">
-              AI indicates no anomaly. Review the certificate below. You may download it as a PDF or store it permanently on the blockchain.
+              Review the certificate below. You may download it as a PDF or store it permanently on the blockchain.
             </p>
-
             <div
               ref={certificateRef}
               className="w-full max-w-3xl bg-white rounded-xl shadow-lg p-6 md:p-8 border"
@@ -497,7 +582,6 @@ export const ProductDetails = ({
                           <th className="p-2 text-center">Unit</th>
                         </tr>
                       </thead>
-                      {/* ✅ MODIFICATION: Dynamically generated table body for all results */}
                       <tbody>
                         {resultEntries.map((entry) => (
                           <tr key={entry.key} className="border-t">
@@ -517,7 +601,6 @@ export const ProductDetails = ({
                 </div>
               </div>
             </div>
-
             <div className="flex flex-col md:flex-row gap-4 mt-4">
               <Button onClick={handleDownloadPDF} className="bg-gray-700 hover:bg-gray-800 text-white">
                 Download PDF
@@ -591,3 +674,4 @@ const CollapsibleCard = ({ title, description, open, toggle, inputs, onInputChan
 );
 
 export default ProductDetails;
+
