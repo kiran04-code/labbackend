@@ -49,6 +49,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
       }
     } catch (error: any) {
       console.error("Register Error:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Registration failed");
    
     } finally {
       setIsLoading(false);
@@ -62,7 +63,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
 
     try {
       const response = await axioseInstance.post(
-        "/loginlab",
+        "/login",
         { email: formData.email, password: formData.password },
         { withCredentials: true }
       );

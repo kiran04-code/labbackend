@@ -8,12 +8,58 @@ import { AuthLayout } from "./components/auth/AuthLayout";
 import { LabDashboard } from "./components/dashboard/LabDashboard";
 import { BatchCreation } from "./components/batch/BatchCreation";
 import { Analytics } from "./components/analytics/Analytics";
-import { AuthProvider } from "./context/auth";
+import { AuthProvider, useAuth } from "./context/auth";
 import PrivateRoute from "./components/PrivateRoute";
 import { ProductDetails } from "./components/ProductDetails";
+import { useNavigate } from "react-router-dom";
 
 // Your pages
 const queryClient = new QueryClient();
+
+const AppRoutes = () => {
+  const { fetchUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleNavigate = (view: string) => {
+    navigate(`/dashboard/${view}`);
+  };
+
+  return (
+    <Routes>
+      {/* Public route */}
+      <Route path="/" element={<AuthLayout onAuthenticated={fetchUser} />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/dashboard"
+        element={
+          <LabDashboard onNavigate={handleNavigate} />
+        }
+      />
+      <Route
+        path="/dashboard/batch"
+        element={
+          <PrivateRoute>
+            <BatchCreation onNavigate={handleNavigate} />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard/analytics"
+        element={
+          <PrivateRoute>
+            <Analytics onNavigate={handleNavigate} />
+          </PrivateRoute>
+        }
+      />
+      <Route path="/product/:id" element={<ProductDetails onNavigate={handleNavigate} />} />
+
+      {/* 404 page */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  )
+};
 
 const App = () => (
   <AuthProvider>
@@ -22,40 +68,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Public route */}
-            <Route path="/" element={<AuthLayout />} />
-
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <LabDashboard />
-
-              }
-            />
-            <Route
-              path="/dashboard/batch"
-              element={
-                <PrivateRoute>
-                  <BatchCreation />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/dashboard/analytics"
-              element={
-                <PrivateRoute>
-                  <Analytics />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/product/:id" element={<ProductDetails />} />
-
-            {/* 404 page */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
