@@ -116,6 +116,9 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                         dnaAuthenticity: "100%"
                     });
                 }
+
+                const res = await axios.post("http://localhost:3000/api/getfarmerDetails",{CollectorId:prod.farmerId})
+               console.log(res.data) 
             } catch (err) {
                 console.error(err);
                 toast({ title: "Error", description: "Failed to fetch product data" });
@@ -171,7 +174,6 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                 try {
                     await contract.setHerbName(product.batchId);
                     await contract.setFarmerId("hbolujui");
-
                     // Environment
                     await contract.setTemperature(Math.round(test_results.Temperature_C * 100)); // 25.5 → 2550
                     await contract.setHumidity(Math.round(test_results.Humidity_Pct * 100));
