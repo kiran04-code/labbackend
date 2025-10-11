@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, QrCode, FlaskConical, BarChart3, Clock, CheckCircle, AlertTriangle, Thermometer, Droplet } from "lucide-react";
+import { Plus, QrCode, FlaskConical, BarChart3, Clock, CheckCircle, AlertTriangle, Thermometer, Droplet, Wind, Inbox } from "lucide-react";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -22,30 +22,60 @@ interface LabDashboardProps {
   onNavigate: (view: string) => void;
 }
 
+// --- Skeleton Component for Loading State ---
+const ProductListSkeleton = () => (
+  <div className="space-y-4">
+    {[...Array(3)].map((_, i) => (
+      <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+        <div className="h-16 w-16 bg-gray-200 rounded"></div>
+        <div className="flex-1 space-y-2">
+          <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// --- Empty State Component ---
+const EmptyState = () => (
+  <div className="flex flex-col items-center justify-center text-center py-16">
+    <Inbox className="h-16 w-16 text-gray-300 mb-4" />
+    <h3 className="text-xl font-semibold text-gray-700">No Products Found</h3>
+    <p className="text-gray-500 mt-1">There are no products available from IPFS yet.</p>
+  </div>
+);
+
+
 export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // <-- Loading state
   const navigate = useNavigate();
   const { account } = useAuth();
 
   const fetchIPFSData = async () => {
+    setIsLoading(true); // <-- Start loading
     try {
       const { data } = await axios.get("https://farmerbackend-dev.onrender.com/api/allproductes");
-      // Ensure data is always an array and clean i
-      console.log(data)
       const cleanedData: Product[] = Array.isArray(data)
         ? data.map(item => ({
             ...item,
-            location: item.location && !item.location.includes("undefined") ? item.location : "Unknown",
+            productName: item.productName || "Unnamed Product",
+            location: item.location && !item.location.includes("undefined") ? item.location : "Unknown Location",
             images: Array.isArray(item.images) ? item.images : [],
             temperature: item.temperature || "-",
             humidity: item.humidity || "-",
             soilMoisture: item.soilMoisture || "-",
+            ipfsHash: item.ipfsHash || "",
           }))
         : [];
       setProducts(cleanedData);
-      console.log("Cleaned Products:", cleanedData);
     } catch (err) {
       console.error("Failed to fetch IPFS data:", err);
+      setProducts([]); // Clear products on error
+    } finally {
+      setIsLoading(false); // <-- Stop loading
     }
   };
 
@@ -61,14 +91,14 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Laboratory Dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Laboratory Dashboard</h1>
           <p className="text-gray-500 mt-1">Herbal Research Lab • License: LAB-2024-001</p>
         </div>
-        <Button onClick={() => onNavigate("batch")} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white flex items-center gap-2">
+        <Button onClick={() => onNavigate("batch")} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow">
           <Plus className="h-4 w-4" /> New Batch
         </Button>
       </div>
@@ -76,19 +106,11 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, idx) => (
-          <Card key={idx} className="shadow-md hover:shadow-lg transition-shadow border border-gray-200">
-            <CardHeader className="flex items-center justify-between pb-2">
+          <Card key={idx} className="shadow-sm hover:shadow-lg transition-all duration-300 border hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
               <stat.icon
-                className={`h-5 w-5 ${
-                  stat.color === "success"
-                    ? "text-green-500"
-                    : stat.color === "warning"
-                    ? "text-yellow-500"
-                    : stat.color === "info"
-                    ? "text-blue-500"
-                    : "text-indigo-500"
-                }`}
+                className={`h-5 w-5 ${stat.color === "success" ? "text-green-500" : stat.color === "warning" ? "text-yellow-500" : stat.color === "info" ? "text-blue-500" : "text-indigo-500"}`}
               />
             </CardHeader>
             <CardContent>
@@ -98,87 +120,96 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
         ))}
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="lg:col-span-2 shadow-md border border-gray-200">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 shadow-sm border">
           <CardHeader>
-            <CardTitle>IPFS Products</CardTitle>
-            <CardDescription>Latest products fetched from IPFS</CardDescription>
+            <CardTitle>Products Ready for Analysis</CardTitle>
+            <CardDescription>Latest product batches fetched from IPFS for quality testing.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {products.map(product => (
-              <div
-                key={product.productId}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
-                onClick={() => navigate(`/product/${product.productId}`)}
-              >
-                <div className="flex items-center space-x-4">
-                  {product.images?.[0] ? (
-                    <img
-                      src={`https://ipfs.io/ipfs/${product.images[0]}`}
-                      alt={`Product ${product.productId}`}
-                      className="h-16 w-16 object-cover rounded border"
-                    />
-                  ) : (
-                    <div className="h-16 w-16 bg-gray-200 rounded flex items-center justify-center text-gray-400">No Img</div>
-                  )}
-                  <div className="flex flex-col">
-                    <div className="font-medium text-lg">{product.productName || "Unnamed Product"}</div>
-                    <div className="text-sm text-gray-500">ID: {product.productId || "-"}</div>
-                    <div className="text-xs mt-1 text-gray-600">Location: {product.location}</div>
-                    <div className="flex gap-3 text-xs mt-1 text-gray-700">
-                      <div className="flex items-center gap-1"><Thermometer className="h-3 w-3" /> Temp: {product.temperature}</div>
-                      <div className="flex items-center gap-1"><Droplet className="h-3 w-3" /> Humidity: {product.humidity}</div>
-                      <div>Soil: {product.soilMoisture}</div>
-                    </div>
-                    <div className="text-xs mt-1">
-                      <a
-                        href={`https://ipfs.io/ipfs/${product.ipfsHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        {product.ipfsHash?.slice(0, 10)}...
-                      </a>
+            {isLoading ? (
+              <ProductListSkeleton />
+            ) : products.length > 0 ? (
+              products.map(product => (
+                <div
+                  key={product.productId}
+                  className="flex items-start md:items-center justify-between p-4 border rounded-lg hover:bg-gray-50/50 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all duration-200 group"
+                  onClick={() => navigate(`/product/${product.productId}`)}
+                >
+                  <div className="flex items-center space-x-4">
+                    {product.images?.[0] ? (
+                      <img
+                        src={`https://ipfs.io/ipfs/${product.images[0]}`}
+                        alt={`Product ${product.productId}`}
+                        className="h-20 w-20 object-cover rounded-md border"
+                      />
+                    ) : (
+                      <div className="h-20 w-20 bg-gray-100 rounded-md flex items-center justify-center text-gray-400">No Img</div>
+                    )}
+                    <div className="flex flex-col">
+                      <div className="font-semibold text-lg text-gray-800">{product.productName}</div>
+                      <div className="text-sm text-gray-500">ID: {product.productId}</div>
+                      <div className="text-xs mt-1 text-gray-600 font-medium">Location: {product.location}</div>
+                      
+                      <div className="flex flex-wrap gap-2 text-xs mt-2 text-gray-700">
+                        <div className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-full"><Thermometer className="h-3 w-3 text-red-500" /> {product.temperature}°C</div>
+                        <div className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-full"><Droplet className="h-3 w-3 text-blue-500" /> {product.humidity}%</div>
+                        <div className="flex items-center gap-1.5 bg-gray-100 px-2 py-1 rounded-full"><Wind className="h-3 w-3 text-green-500" /> {product.soilMoisture}%</div>
+                      </div>
                     </div>
                   </div>
+                  {product.ipfsHash && (
+                    <a
+                      href={`https://ipfs.io/ipfs/${product.ipfsHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()} // Prevent card navigation
+                      className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full hover:bg-indigo-100 transition-colors hidden md:block"
+                    >
+                      {product.ipfsHash.slice(0, 6)}...{product.ipfsHash.slice(-4)}
+                    </a>
+                  )}
                 </div>
+              ))
+            ) : (
+              <EmptyState />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Side Cards */}
+        <div className="space-y-6">
+          <Card className="shadow-sm border">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common laboratory tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full justify-start" variant="outline" onClick={() => navigate("research")}>
+                <FlaskConical className="mr-2 h-4 w-4" /> Enter Research Data
+              </Button>
+              <Button className="w-full justify-start" variant="outline" onClick={() => navigate("analytics")}>
+                <BarChart3 className="mr-2 h-4 w-4" /> View Analytics
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-sm border-l-4 border-l-yellow-500 bg-yellow-50/50">
+            <CardHeader className="flex flex-row items-center space-x-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <CardTitle className="text-yellow-800">System Alerts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-yellow-900 space-y-1">
+                <p>• Batch <strong>BTH-001</strong> heavy metal levels require attention.</p>
+                <p>• Equipment calibration due in <strong>3 days</strong>.</p>
+                <p>• Monthly compliance report due soon.</p>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="shadow-md border border-gray-200">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common laboratory tasks</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full justify-start" variant="outline" onClick={() => navigate("research")}>
-              <FlaskConical className="mr-2 h-4 w-4" /> Enter Research Data
-            </Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => navigate("analytics")}>
-              <BarChart3 className="mr-2 h-4 w-4" /> View Analytics
-            </Button>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {/* Alerts */}
-      <Card className="mt-6 shadow-md border-l-4 border-l-yellow-500">
-        <CardHeader className="flex items-center space-x-2">
-          <AlertTriangle className="h-5 w-5 text-yellow-500" />
-          <CardTitle className="text-yellow-500">System Alerts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-gray-700 space-y-1">
-            <p>• Batch BTH-001 heavy metal levels require attention</p>
-            <p>• Equipment calibration due in 3 days</p>
-            <p>• Monthly compliance report due soon</p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
