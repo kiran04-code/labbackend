@@ -214,6 +214,7 @@ export const ProductDetails = ({ onNavigate }: { onNavigate: (view: string) => v
                     setModalContent(data);
                     setloder(false)
                     toast({ title: " Store on is Blockchain  Complete  ", description: "Your Produst is store on blockchain is Successfull", });
+                    // crate the cerificated on ipfs with farmerId
                 } catch (err) {
                      setloder(false)
                     console.error("Blockchain error:", err);

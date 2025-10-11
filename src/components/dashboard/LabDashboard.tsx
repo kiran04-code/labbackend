@@ -31,14 +31,15 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
     try {
       const { data } = await axios.get("https://farmerbackend-dev.onrender.com/api/allproductes");
       setProducts(data);
+      console.log(data)
     } catch (err) {
       console.error("Failed to fetch IPFS data:", err);
     }
   };
 
-  useEffect(() => {
-    fetchIPFSData();
-  }, []);
+  // useEffect(() => {
+  //   fetchIPFSData();
+  // }, []);
 
   // Example static stats
   const stats = [
