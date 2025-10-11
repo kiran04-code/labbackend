@@ -78,6 +78,7 @@ export const ProductDetails = ({
 
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loaderText, setLoaderText] = useState("Processing...");
   const [modalContent, setModalContent] = useState<ApiResponse | null>(null);
   const [step, setStep] = useState<
     "form" | "ai-running" | "preview" | "blockchain" | "anomaly"
@@ -91,7 +92,7 @@ export const ProductDetails = ({
   });
 
   const certificateRef = useRef<HTMLDivElement | null>(null);
-   console.log(user)
+
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
@@ -108,7 +109,7 @@ export const ProductDetails = ({
           setProduct({
             batchId: prod.productId,
             testDate: new Date().toISOString().split("T")[0],
-            temperature: parseFloat(prod.temperature),
+            temperature: parseFloat(prod.temperature) || 0,
             humidity: 65,
             storageTime: 100,
             lightExposure: 6,
@@ -158,6 +159,7 @@ export const ProductDetails = ({
     e.preventDefault();
     if (!product) return;
     setLoading(true);
+    setLoaderText("Analyzing data with AI...");
     setStep("ai-running");
     try {
       const submissionData = {
@@ -210,39 +212,88 @@ export const ProductDetails = ({
     }
   };
 
-  // ------------------ Store on Blockchain (then navigate to dashboard) ------------------
+  // ------------------ Store Certificate on Pinata and Data on Blockchain ------------------
   const handleStoreOnBlockchain = async () => {
     if (!contract || !product) {
       toast({ title: "Missing", description: "Wallet/contract not connected.", variant: "destructive" });
       return;
     }
+    if (!certificateRef.current) {
+        toast({ title: "Error", description: "Certificate preview is not available.", variant: "destructive" });
+        return;
+    }
+
     setLoading(true);
     setStep("blockchain");
+    
     try {
-      // Your existing contract calls
-      await contract.setHerbName(product.batchId);
-      await contract.setFarmerId(user?.licenseId || "F123");
-      await contract.setTemperature(Math.round(product.temperature * 100));
-      await contract.setHumidity(Math.round(product.humidity * 100));
-      await contract.setSoilPh(Math.round(product.soilPh * 100));
-      await contract.setMoisture(Math.round(product.soilMoisture * 100));
-      await contract.setOil(Math.round(product.essentialOil * 100));
+      // Step 1: Capture Certificate and Upload to Pinata
+      setLoaderText("Uploading certificate to IPFS...");
+      const canvas = await html2canvas(certificateRef.current, { scale: 2 });
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) {
+          throw new Error("Failed to create image blob from certificate.");
+      }
+      const file = new File([blob], `Certificate-${product.batchId}.png`, { type: 'image/png' });
       
-      toast({ title: "Success", description: "Data stored on blockchain." });
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Navigate to dashboard after successful storage
+      // ✅ MODIFICATION: Added batchId to metadata for better querying
+      const metadata = JSON.stringify({
+        name: `Certificate-${product.batchId}`,
+        keyvalues: {
+          licenseId: user?.licenseId || 'NOT_AVAILABLE',
+          batchId: product.batchId,
+        }
+      });
+      formData.append('pinataMetadata', metadata);
+      
+      const pinataResponse = await axios.post(
+          "https://api.pinata.cloud/pinning/pinFileToIPFS",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              pinata_api_key: "9ee892bfc12b953147be",
+              pinata_secret_api_key: "c85fc4ba88949c3302c358f04734f9b51b2c971f1de682e0f90304eb6a8a01d3",
+            },
+          }
+      );
+
+      const certificateIpfsHash = pinataResponse.data.IpfsHash;
+      toast({ title: "Upload Success", description: "Certificate stored on IPFS." });
+      
+      // Step 2: Store Data and IPFS Hash on the Blockchain
+      setLoaderText("Storing data on blockchain...");
+      await contract.setHerbName(product.batchId);
+      // await contract.setFarmerId(user?.licenseId || "F123");
+      // await contract.setTemperature(Math.round(product.temperature * 100));
+      // await contract.setHumidity(Math.round(product.humidity * 100));
+      // await contract.setSoilPh(Math.round(product.soilPh * 100));
+      // await contract.setMoisture(Math.round(product.soilMoisture * 100));
+      // await contract.setOil(Math.round(product.essentialOil * 100));
+      
+      if (contract.setCertificateHash) {
+          await contract.setCertificateHash(user?.licenseId || "N/A", certificateIpfsHash);
+      }
+      
+      toast({ title: "Blockchain Success", description: "Data and certificate hash stored on blockchain." });
+
       onNavigate("dashboard");
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      const errorMessage = err.response?.data?.error || err.message || "An unknown error occurred.";
       toast({
-        title: "Blockchain Error",
-        description: "Unable to store data on blockchain.",
+        title: "Process Failed",
+        description: `Could not complete the process. Error: ${errorMessage}`,
         variant: "destructive",
       });
       setStep("preview"); // Go back to preview to allow retry
     } finally {
       setLoading(false);
+      setLoaderText("Processing...");
     }
   };
 
@@ -250,8 +301,8 @@ export const ProductDetails = ({
   const LoaderOverlay = () => (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-800 text-white">
       <div className="w-20 h-20 border-4 border-t-transparent border-white rounded-full animate-spin mb-6"></div>
-      <h2 className="text-2xl font-bold animate-pulse">Processing...</h2>
-      <p className="text-sm opacity-80 mt-2 text-center max-w-xs">Working with AI / blockchain — please wait.</p>
+      <h2 className="text-2xl font-bold animate-pulse">{loaderText}</h2>
+      <p className="text-sm opacity-80 mt-2 text-center max-w-xs">This may take a moment. Please wait.</p>
     </div>
   );
 
@@ -291,6 +342,20 @@ export const ProductDetails = ({
       </div>
     );
   };
+  
+  // ✅ MODIFICATION: Helper array for dynamically creating the results table
+  const resultEntries = [
+    { key: 'temperature', label: 'Temperature', unit: '°C' },
+    { key: 'humidity', label: 'Humidity', unit: '%' },
+    { key: 'soilPh', label: 'Soil pH', unit: 'pH' },
+    { key: 'moistureContent', label: 'Moisture Content', unit: '%' },
+    { key: 'essentialOil', label: 'Essential Oil', unit: '%' },
+    { key: 'pesticideResidue', label: 'Pesticide Residue', unit: 'ppm' },
+    { key: 'heavyMetalPb', label: 'Lead (Pb)', unit: 'mg/kg' },
+    { key: 'aflatoxinTotal', label: 'Aflatoxin', unit: 'ppb' },
+    { key: 'bacterialCount', label: 'Bacterial Count', unit: 'CFU/g' },
+    { key: 'dnaAuthenticity', label: 'DNA Authenticity', unit: '%' },
+  ];
 
   // ------------------ Main Render ------------------
   if (!product) return <div className="p-6">Loading...</div>;
@@ -306,16 +371,13 @@ export const ProductDetails = ({
           </Button>
         </div>
 
-        {/* Flow bar */}
         <FlowBar currentStep={step} />
 
-        {/* FORM */}
         {step === "form" && (
           <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-2xl shadow-md">
             <h1 className="text-2xl font-bold text-gray-800">Research Data Entry: {product.batchId}</h1>
             <p className="text-sm text-gray-500">Fill or verify test parameters, then click Analyze.</p>
 
-            {/* Collapsible Cards for Inputs */}
             <CollapsibleCard
                 title="Environmental & Soil Conditions"
                 description="Temperature, humidity, soil parameters"
@@ -382,19 +444,17 @@ export const ProductDetails = ({
                 inputs={[{ id: "dnaAuthenticity", label: "DNA Authenticity (%)", value: product.dnaAuthenticity }]}
                 onInputChange={handleInputChange}
             />
-            
             <div className="flex flex-col md:flex-row gap-4 pt-4">
-              <Button type="button" variant="outline" onClick={() => toast({ title: "Draft", description: "Draft saved." })} className="flex-1">
-                <Save className="mr-2 h-4 w-4" /> Save Draft
-              </Button>
-              <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
-                Analyze & Generate Certificate
-              </Button>
+                <Button type="button" variant="outline" onClick={() => toast({ title: "Draft", description: "Draft saved." })} className="flex-1">
+                    <Save className="mr-2 h-4 w-4" /> Save Draft
+                </Button>
+                <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+                    Analyze & Generate Certificate
+                </Button>
             </div>
           </form>
         )}
 
-        {/* PREVIEW */}
         {step === "preview" && product && (
           <div className="flex flex-col items-center space-y-6">
             <h2 className="text-3xl font-bold text-blue-700">Certificate Preview</h2>
@@ -402,77 +462,54 @@ export const ProductDetails = ({
               AI indicates no anomaly. Review the certificate below. You may download it as a PDF or store it permanently on the blockchain.
             </p>
 
-            {/* Certificate preview */}
             <div
               ref={certificateRef}
               className="w-full max-w-3xl bg-white rounded-xl shadow-lg p-6 md:p-8 border"
             >
-              {/* The certificate HTML you supplied, converted to JSX */}
               <div style={{ fontFamily: "Arial, sans-serif", color: "#333" }}>
                 <div className="text-center" style={{ color: "#42b13f" }}>
                   <h1 className="text-2xl md:text-3xl font-bold">Ayurvedic Report</h1>
                   <p className="text-sm">Laboratory of Ayurvedic Crops Sikkim</p>
                 </div>
-
                 <div className="mt-3">
                   <div className="bg-green-200 text-center font-bold py-2 rounded">Result: Passed</div>
                 </div>
-
                 <div className="mt-6 flex flex-col md:flex-row md:justify-between gap-4">
                   <div className="w-full md:w-1/2 text-sm leading-relaxed">
-                    <p><strong>License ID:</strong> {user?.licenseId ?? "null"}</p>
-                    <p><strong>Lab Name:</strong> {user?.laboratoryName ?? "null"}</p>
+                    <p><strong>License ID:</strong> {user?.licenseId ?? "N/A"}</p>
+                    <p><strong>Lab Name:</strong> {user?.laboratoryName ?? "N/A"}</p>
                     <p><strong>Farmer(Batch ID):</strong> {product.batchId}</p>
                     <p><strong>Farmer Name:</strong> Kiran Rathod</p>
                   </div>
                   <div className="w-full md:w-1/2 text-sm leading-relaxed">
                     <p><strong>Address:</strong></p>
-                    <p>{user?.location}</p>
+                    <p>{user?.location ?? "N/A"}</p>
                   </div>
                 </div>
-
                 <div className="mt-6">
                   <h3 className="font-semibold">Lab Results</h3>
                   <div className="mt-2 overflow-x-auto">
                     <table className="w-full border-collapse" style={{ border: "1px solid #7ab97a" }}>
                       <thead>
                         <tr style={{ background: "#3e823e", color: "#fff" }}>
-                          <th className="p-2">Parameter</th>
-                          <th className="p-2">Value</th>
-                          <th className="p-2">Notes</th>
+                          <th className="p-2 text-left">Parameter</th>
+                          <th className="p-2 text-center">Value</th>
+                          <th className="p-2 text-center">Unit</th>
                         </tr>
                       </thead>
+                      {/* ✅ MODIFICATION: Dynamically generated table body for all results */}
                       <tbody>
-                        <tr>
-                          <td className="p-2 text-center">Temperature</td>
-                          <td className="p-2 text-center">{product.temperature}</td>
-                          <td className="p-2 text-center">°C</td>
-                        </tr>
-                        <tr>
-                          <td className="p-2 text-center">Humidity</td>
-                          <td className="p-2 text-center">{product.humidity}</td>
-                          <td className="p-2 text-center">%</td>
-                        </tr>
-                        <tr>
-                          <td className="p-2 text-center">Soil pH</td>
-                          <td className="p-2 text-center">{product.soilPh}</td>
-                          <td className="p-2 text-center">pH</td>
-                        </tr>
-                        <tr>
-                          <td className="p-2 text-center">Essential Oil</td>
-                          <td className="p-2 text-center">{product.essentialOil}</td>
-                          <td className="p-2 text-center">%</td>
-                        </tr>
-                        <tr>
-                          <td className="p-2 text-center">DNA Authenticity</td>
-                          <td className="p-2 text-center">{product.dnaAuthenticity}</td>
-                          <td className="p-2 text-center">%</td>
-                        </tr>
+                        {resultEntries.map((entry) => (
+                          <tr key={entry.key} className="border-t">
+                            <td className="p-2 font-medium">{entry.label}</td>
+                            <td className="p-2 text-center">{String(product[entry.key as keyof ProductData])}</td>
+                            <td className="p-2 text-center text-gray-600">{entry.unit}</td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
-
                 <div className="mt-8 flex items-center justify-between">
                   <div className="bg-green-100 px-3 py-2 rounded text-sm">
                     Validated By: {user?.laboratoryName}
@@ -481,7 +518,6 @@ export const ProductDetails = ({
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex flex-col md:flex-row gap-4 mt-4">
               <Button onClick={handleDownloadPDF} className="bg-gray-700 hover:bg-gray-800 text-white">
                 Download PDF
@@ -493,14 +529,13 @@ export const ProductDetails = ({
           </div>
         )}
 
-        {/* ANOMALY */}
         {step === "anomaly" && modalContent && (
           <div className="flex flex-col items-center text-center space-y-6">
-            <h2 className="text-3xl font-bold text-red-600">⚠️ Anomaly Detected</h2>
+             <h2 className="text-3xl font-bold text-red-600">⚠️ Anomaly Detected</h2>
             <p className="text-gray-700 max-w-lg">{modalContent.summary}</p>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left w-full max-w-2xl">
-              <h3 className="text-lg font-semibold mb-2 text-red-700">Detected Parameters:</h3>
-              <ul className="list-disc pl-5 space-y-1 text-sm text-gray-800">
+               <h3 className="text-lg font-semibold mb-2 text-red-700">Detected Parameters:</h3>
+               <ul className="list-disc pl-5 space-y-1 text-sm text-gray-800">
                 {modalContent.anomalies?.map((a, idx) => (
                   <li key={idx}>
                     <strong>{a.parameter}</strong> — expected {a.expected_range}, got {a.actual_value}
@@ -508,11 +543,10 @@ export const ProductDetails = ({
                 ))}
               </ul>
             </div>
-
             <div className="flex gap-4">
               <Button onClick={() => setStep("form")} variant="outline">Back to Form</Button>
-              <Button onClick={() => toast({ title: "Manual Review", description: "Open manual review." })} className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                Check Manually
+              <Button onClick={() => toast({ title: "Manual Review", description: "Flagged for manual review." })} className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                Flag for Manual Review
               </Button>
             </div>
           </div>
@@ -522,26 +556,12 @@ export const ProductDetails = ({
   );
 };
 
-// ------------------ Reusable Components ------------------
-const InputSection = ({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number | string;
-  onChange?: (id: keyof ProductData, value: string) => void;
-}) => (
+// --- Reusable Components ---
+
+const InputSection = ({ id, label, value, onChange }: any) => (
   <div className="space-y-2">
     <Label htmlFor={id}>{label}</Label>
-    <Input
-      id={id}
-      type="text"
-      value={value}
-      onChange={(e) => onChange && onChange(id as keyof ProductData, e.target.value)}
-    />
+    <Input id={id} type="text" value={value} onChange={(e) => onChange && onChange(id, e.target.value)} />
   </div>
 );
 
@@ -562,13 +582,7 @@ const CollapsibleCard = ({ title, description, open, toggle, inputs, onInputChan
       <CollapsibleContent>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
           {inputs?.map((inp: any) => (
-            <InputSection
-              key={inp.id}
-              id={inp.id}
-              label={inp.label}
-              value={inp.value}
-              onChange={onInputChange}
-            />
+            <InputSection key={inp.id} id={inp.id} label={inp.label} value={inp.value} onChange={onInputChange} />
           ))}
         </CardContent>
       </CollapsibleContent>

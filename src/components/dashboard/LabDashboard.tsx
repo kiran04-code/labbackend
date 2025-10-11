@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, QrCode, FlaskConical, BarChart3, Clock, CheckCircle, AlertTriangle, Thermometer, Droplet, Wind, Inbox } from "lucide-react";
+import { Plus, QrCode, FlaskConical, BarChart3, Clock, CheckCircle, AlertTriangle, Thermometer, Droplet, Wind, Inbox, PanelLeftDashed, DockIcon } from "lucide-react";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +24,7 @@ interface LabDashboardProps {
 
 // --- Skeleton Component for Loading State ---
 const ProductListSkeleton = () => (
+  
   <div className="space-y-4">
     {[...Array(3)].map((_, i) => (
       <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
@@ -53,7 +54,7 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true); // <-- Loading state
   const navigate = useNavigate();
   const { account } = useAuth();
-
+  const navi = useNavigate()
   const fetchIPFSData = async () => {
     setIsLoading(true); // <-- Start loading
     try {
@@ -87,7 +88,7 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
     { label: "Active Tests", value: products.length.toString(), icon: FlaskConical, color: "info" },
     { label: "Total Images", value: products.reduce((acc, p) => acc + (p.images?.length || 0), 0).toString(), icon: CheckCircle, color: "success" },
     { label: "Unique Locations", value: new Set(products.map(p => p.location)).size.toString(), icon: Clock, color: "warning" },
-    { label: "QR Codes Generated", value: products.length.toString(), icon: QrCode, color: "primary" },
+    { label: "Generated  Cetificated", value: products.length.toString(), icon: DockIcon, color: "primary", NV:"AllCertificted" },
   ];
 
   return (
@@ -106,7 +107,7 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, idx) => (
-          <Card key={idx} className="shadow-sm hover:shadow-lg transition-all duration-300 border hover:-translate-y-1">
+          <Card key={idx} onClick={()=>navi(`/${stat.NV}`)} className="shadow-sm hover:shadow-lg transition-all duration-300 border hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">{stat.label}</CardTitle>
               <stat.icon
@@ -114,7 +115,7 @@ export const LabDashboard = ({ onNavigate }: LabDashboardProps) => {
               />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-2xl font-bold" >{stat.value}</div>
             </CardContent>
           </Card>
         ))}

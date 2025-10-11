@@ -11,6 +11,8 @@ import { Analytics } from "./components/analytics/Analytics";
 import { AuthProvider } from "./context/auth";
 import PrivateRoute from "./components/PrivateRoute";
 import { ProductDetails } from "./components/ProductDetails";
+import AllCerificateds from "./components/AllCerificateds";
+import LabProfileAndCertificates from "./components/AllCerificateds";
 
 // Your pages
 const queryClient = new QueryClient();
@@ -51,8 +53,9 @@ const App = () => (
                 </PrivateRoute>
               }
             />
-            <Route path="/product/:id" element={<ProductDetails />} />
 
+            <Route path="/product/:id" element={<ProductDetails />} />
+            <Route path="/AllCertificted" element={<LabProfileAndCertificates />} />
             {/* 404 page */}
             <Route path="*" element={<NotFound />} />
           </Routes>
