@@ -1,6 +1,6 @@
 // src/components/ProductDetails.tsx
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -25,6 +25,8 @@ import html2canvas from "html2canvas";
 
 // ------------------ Interfaces ------------------
 interface ProductData {
+  farmerId:string
+  ProductName:string
   batchId: string;
   testDate: string;
   temperature: number;
@@ -76,6 +78,7 @@ export const ProductDetails = ({
   const { id } = useParams<{ id: string }>();
   const { contract, user } = useAuth();
 
+  const UseNav  = useNavigate();
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(false);
   const [loaderText, setLoaderText] = useState("Processing...");
@@ -96,7 +99,6 @@ export const ProductDetails = ({
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
-
   // ------------------ Fetch Product ------------------
   useEffect(() => {
     const fetchProductData = async () => {
@@ -105,8 +107,11 @@ export const ProductDetails = ({
           "https://farmerbackend-dev.onrender.com/api/allproductes"
         );
         const prod = data.find((p: any) => p.productId === id);
+        console.log(prod)
         if (prod) {
           setProduct({
+            ProductName:prod.productName,
+            farmerId:prod.farmerId,
             batchId: prod.productId,
             testDate: new Date().toISOString().split("T")[0],
             temperature: parseFloat(prod.temperature) || 0,
@@ -171,6 +176,7 @@ export const ProductDetails = ({
         "https://sattva-chain-processor.onrender.com/agent/analyze-herb-quality-rag",
         submissionData
       );
+      console.log(data)
       setModalContent(data);
       if (data.status === "Normal") {
         setStep("ai-result");
@@ -178,7 +184,7 @@ export const ProductDetails = ({
         setStep("anomaly");
       }
     } catch (err) {
-      console.error(err);
+      console.error("err",err);
       toast({
         title: "AI Analysis Error",
         description: "Please check your connection or inputs.",
@@ -317,22 +323,19 @@ export const ProductDetails = ({
           qualityData
       );
 
-      setLoaderText("Storing data on blockchain... Please confirm in your wallet.");
-      await tx.wait(); // Wait for the single transaction to be mined
-
-      toast({ title: "Blockchain Success", description: "All data stored in one transaction." });
-
-      // Step 3: Store data in the off-chain database
       setLoaderText("Syncing with database...");
-      await axios.post("http://localhost:3005/StoreInDB", {
+    const {data} =   await axios.post("https://bkdoflab.onrender.com/StoreInDB", {
           ...product,
           certificateIpfsHash,
           licenseId: user?.licenseId || "N/A",
       });
+      if(data.success){
+        UseNav("dashboard");
+      }
       toast({ title: "Database Sync Success", description: "Data stored in the database." });
-
-      onNavigate("dashboard");
-
+      setLoaderText("Storing data on blockchain... Please confirm in your wallet.");
+      await tx.wait(); 
+      toast({ title: "Blockchain Success", description: "All data stored in one transaction." });
     } catch (err: any) {
       console.error(err);
       const errorMessage = err.response?.data?.error || err.message || "An unknown error occurred.";
