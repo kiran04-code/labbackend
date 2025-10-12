@@ -49,6 +49,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
       }
     } catch (error: any) {
       console.error("Register Error:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Registration failed");
    
     } finally {
       setIsLoading(false);
@@ -62,7 +63,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
 
     try {
       const response = await axioseInstance.post(
-        "/loginlab",
+        "/login",
         { email: formData.email, password: formData.password },
         { withCredentials: true }
       );
@@ -125,6 +126,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       type="email"
                       placeholder="admin@lab.com"
                       required
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
                     />
@@ -135,6 +137,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       id="password"
                       type="password"
                       required
+                      autoComplete="current-password"
                       value={formData.password}
                       onChange={handleChange}
                     />
@@ -185,6 +188,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       type="email"
                       placeholder="admin@lab.com"
                       required
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
                     />
@@ -195,6 +199,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       id="password"
                       type="password"
                       required
+                      autoComplete="new-password"
                       value={formData.password}
                       onChange={handleChange}
                     />
