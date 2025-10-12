@@ -126,6 +126,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       type="email"
                       placeholder="admin@lab.com"
                       required
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
                     />
@@ -136,6 +137,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       id="password"
                       type="password"
                       required
+                      autoComplete="current-password"
                       value={formData.password}
                       onChange={handleChange}
                     />
@@ -186,6 +188,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       type="email"
                       placeholder="admin@lab.com"
                       required
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
                     />
@@ -196,6 +199,7 @@ export const AuthLayout = ({ onAuthenticated }: AuthLayoutProps) => {
                       id="password"
                       type="password"
                       required
+                      autoComplete="new-password"
                       value={formData.password}
                       onChange={handleChange}
                     />

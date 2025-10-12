@@ -21,7 +21,11 @@ const AppRoutes = () => {
   const navigate = useNavigate();
 
   const handleNavigate = (view: string) => {
-    navigate(`/dashboard/${view}`);
+    if (view === "dashboard") {
+      navigate("/dashboard");
+    } else {
+      navigate(`/dashboard/${view}`);
+    }
   };
 
   return (
@@ -49,7 +53,7 @@ const AppRoutes = () => {
         path="/dashboard/analytics"
         element={
           <PrivateRoute>
-            <Analytics onNavigate={handleNavigate} />
+            <Analytics />
           </PrivateRoute>
         }
       />
