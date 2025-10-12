@@ -324,7 +324,7 @@ export const ProductDetails = ({
 
       // Step 3: Store data in the off-chain database
       setLoaderText("Syncing with database...");
-      await axios.post("http://localhost:3005/StoreInDB", {
+      await axios.post("https://bkdoflab.onrender.com/StoreInDB", {
           ...product,
           certificateIpfsHash,
           licenseId: user?.licenseId || "N/A",
@@ -674,4 +674,5 @@ const CollapsibleCard = ({ title, description, open, toggle, inputs, onInputChan
 );
 
 export default ProductDetails;
+
 
